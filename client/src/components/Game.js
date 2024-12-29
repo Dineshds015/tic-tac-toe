@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { io } from "socket.io-client";
+import "./Game.css"; // Import the CSS file
 
 const socket = io("http://localhost:5000");
 
@@ -10,6 +11,8 @@ const Game = () => {
     const [turn, setTurn] = useState("");
     const [message, setMessage] = useState("");
     const [gameOver, setGameOver] = useState(false);
+    const [winner, setWinner] = useState(null);
+    const [winningLine, setWinningLine] = useState([]);
 
     const createGame = () => {
         const id = Math.random().toString(36).substr(2, 9);
@@ -39,8 +42,10 @@ const Game = () => {
             setMessage("It's " + turn + "'s turn.");
         });
 
-        socket.on("gameOver", ({ winner }) => {
+        socket.on("gameOver", ({ winner, line }) => {
             setGameOver(true);
+            setWinner(winner);
+            setWinningLine(line || []);
             if (winner) {
                 setMessage(`${winner} wins!`);
             } else {
@@ -67,47 +72,60 @@ const Game = () => {
         }
     };
 
+    const resetGame = () => {
+        setBoard(Array(9).fill(null));
+        setTurn("");
+        setMessage("");
+        setGameOver(false);
+        setWinner(null);
+        setWinningLine([]);
+    };
+
     return (
-        <div>
-            <h1>Tic Tac Toe</h1>
+        <div className="container">
+            <h1 className="title">Tic Tac Toe</h1>
             {!gameId && (
-                <button onClick={createGame}>Create Game</button>
+                <button onClick={createGame} className="button">Create Game</button>
             )}
-            <input
-                type="text"
-                placeholder="Enter game ID"
-                value={gameId}
-                onChange={(e) => setGameId(e.target.value)}
-                disabled={!!gameId}
-            />
-            <input
-                type="text"
-                placeholder="Enter 'O' or 'X'"
-                value={player}
-                onChange={(e) => setPlayer(e.target.value.toUpperCase())}
-                disabled={!!player}
-            />
-            <button onClick={joinGame}>Join Game</button>
-            <p>{message}</p>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 100px)", gap: "5px" }}>
+            <div className="input-group">
+                <input
+                    type="text"
+                    placeholder="Enter game ID"
+                    value={gameId}
+                    onChange={(e) => setGameId(e.target.value)}
+                    disabled={!!gameId}
+                    className="input"
+                />
+                <input
+                    type="text"
+                    placeholder="Enter 'O' or 'X'"
+                    value={player}
+                    onChange={(e) => setPlayer(e.target.value.toUpperCase())}
+                    disabled={!!player}
+                    className="input"
+                />
+                <button onClick={joinGame} className="button">Join Game</button>
+            </div>
+            <p className="message">{message}</p>
+            <div className="board">
                 {board.map((cell, idx) => (
                     <div
                         key={idx}
                         onClick={() => makeMove(idx)}
-                        style={{
-                            width: "100px",
-                            height: "100px",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            border: "1px solid black",
-                            fontSize: "24px",
-                        }}
+                        className={`cell ${winningLine.includes(idx) ? "winning-cell" : ""}`}
                     >
                         {cell}
                     </div>
                 ))}
             </div>
+            {gameOver && (
+                <div className="modal">
+                    <div className="modal-content">
+                        <h2>{winner ? `${winner} Wins!` : "It's a Draw!"}</h2>
+                        <button onClick={resetGame} className="button">Play Again</button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
